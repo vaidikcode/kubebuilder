@@ -28,6 +28,7 @@ var _ machinery.Template = &HelmChartCI{}
 type HelmChartCI struct {
 	machinery.TemplateMixin
 	machinery.ProjectNameMixin
+	ChartDir string
 }
 
 // SetTemplateDefaults implements machinery.Template
@@ -36,8 +37,12 @@ func (f *HelmChartCI) SetTemplateDefaults() error {
 		f.Path = filepath.Join(".github", "workflows", "test-chart.yml")
 	}
 
-	f.TemplateBody = testChartTemplate
+	// Set the ChartDir to "dist" if it's empty
+	if f.ChartDir == "" {
+		f.ChartDir = "dist"
+	}
 
+	f.TemplateBody = testChartTemplate
 	f.IfExistsAction = machinery.SkipFile
 
 	return nil
@@ -90,7 +95,7 @@ jobs:
 
       - name: Lint Helm Chart
         run: |
-          helm lint ./dist/chart
+          helm lint ./{{ .ChartDir }}/chart
 
 # TODO: Uncomment if cert-manager is enabled
 #      - name: Install cert-manager via Helm
@@ -124,7 +129,7 @@ jobs:
 
       - name: Install Helm chart for project
         run: |
-          helm install my-release ./dist/chart --create-namespace --namespace {{ .ProjectName }}-system
+          helm install my-release ./{{ .ChartDir }}/chart --create-namespace --namespace {{ .ProjectName }}-system
 
       - name: Check Helm release status
         run: |

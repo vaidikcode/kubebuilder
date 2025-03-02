@@ -50,13 +50,16 @@ type initScaffolder struct {
 	fs machinery.Filesystem
 
 	force bool
+
+	chartDir string
 }
 
 // NewInitHelmScaffolder returns a new Scaffolder for HelmPlugin
-func NewInitHelmScaffolder(config config.Config, force bool) plugins.Scaffolder {
+func NewInitHelmScaffolder(config config.Config, force bool, chartDir string) plugins.Scaffolder {
 	return &initScaffolder{
-		config: config,
-		force:  force,
+		config:   config,
+		force:    force,
+		chartDir: chartDir,
 	}
 }
 
@@ -82,23 +85,25 @@ func (s *initScaffolder) Scaffold() error {
 
 	hasWebhooks := len(mutatingWebhooks) > 0 || len(validatingWebhooks) > 0
 	buildScaffold := []machinery.Builder{
-		&github.HelmChartCI{},
-		&templates.HelmChart{},
+		&github.HelmChartCI{ChartDir: s.chartDir},
+		&templates.HelmChart{ChartDir: s.chartDir},
 		&templates.HelmValues{
 			HasWebhooks:  hasWebhooks,
 			DeployImages: imagesEnvVars,
 			Force:        s.force,
+			ChartDir:     s.chartDir,
 		},
-		&templates.HelmIgnore{},
-		&charttemplates.HelmHelpers{},
+		&templates.HelmIgnore{ChartDir: s.chartDir},
+		&charttemplates.HelmHelpers{ChartDir: s.chartDir},
 		&manager.Deployment{
 			Force:        s.force,
 			DeployImages: len(imagesEnvVars) > 0,
 			HasWebhooks:  hasWebhooks,
+			ChartDir:     s.chartDir,
 		},
-		&templatescertmanager.Certificate{},
-		&templatesmetrics.Service{},
-		&prometheus.Monitor{},
+		&templatescertmanager.Certificate{ChartDir: s.chartDir},
+		&templatesmetrics.Service{ChartDir: s.chartDir},
+		&prometheus.Monitor{ChartDir: s.chartDir},
 	}
 
 	if len(mutatingWebhooks) > 0 || len(validatingWebhooks) > 0 {
@@ -106,8 +111,9 @@ func (s *initScaffolder) Scaffold() error {
 			&templateswebhooks.Template{
 				MutatingWebhooks:   mutatingWebhooks,
 				ValidatingWebhooks: validatingWebhooks,
+				ChartDir:           s.chartDir,
 			},
-			&templateswebhooks.Service{},
+			&templateswebhooks.Service{ChartDir: s.chartDir},
 		)
 	}
 
@@ -115,10 +121,10 @@ func (s *initScaffolder) Scaffold() error {
 		return fmt.Errorf("error scaffolding helm-chart manifests: %v", err)
 	}
 
-	// Copy relevant files from config/ to dist/chart/templates/
+	// Copy relevant files from config/ to chartDir/chart/templates/
 	err = s.copyConfigFiles()
 	if err != nil {
-		return fmt.Errorf("failed to copy manifests from config to dist/chart/templates/: %v", err)
+		return fmt.Errorf("failed to copy manifests from config to %s/chart/templates/: %v", s.chartDir, err)
 	}
 
 	return nil
@@ -218,16 +224,16 @@ func (s *initScaffolder) extractWebhooksFromGeneratedFiles() (mutatingWebhooks [
 	return mutatingWebhooks, validatingWebhooks, nil
 }
 
-// Helper function to copy files from config/ to dist/chart/templates/
+// Helper function to copy files from config/ to chartDir/chart/templates/
 func (s *initScaffolder) copyConfigFiles() error {
 	configDirs := []struct {
 		SrcDir  string
 		DestDir string
 		SubDir  string
 	}{
-		{"config/rbac", "dist/chart/templates/rbac", "rbac"},
-		{"config/crd/bases", "dist/chart/templates/crd", "crd"},
-		{"config/network-policy", "dist/chart/templates/network-policy", "networkPolicy"},
+		{"config/rbac", filepath.Join(s.chartDir, "chart/templates/rbac"), "rbac"},
+		{"config/crd/bases", filepath.Join(s.chartDir, "chart/templates/crd"), "crd"},
+		{"config/network-policy", filepath.Join(s.chartDir, "chart/templates/network-policy"), "networkPolicy"},
 	}
 
 	for _, dir := range configDirs {
@@ -484,8 +490,6 @@ func isMetricRBACFile(subDir, srcFile string) bool {
 
 // removeLabels removes any existing labels section from the content
 func removeLabels(content string) string {
-	labelRegex := `(?m)^  labels:\n(?:    [^\n]+\n)*`
-	re := regexp.MustCompile(labelRegex)
-
-	return re.ReplaceAllString(content, "")
+	labelRegex := regexp.MustCompile(`(?m)^  labels:\n(?:    [^\n]+\n)*`)
+	return labelRegex.ReplaceAllString(content, "")
 }

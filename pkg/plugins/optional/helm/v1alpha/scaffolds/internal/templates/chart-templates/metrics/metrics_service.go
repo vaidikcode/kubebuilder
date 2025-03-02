@@ -27,12 +27,13 @@ var _ machinery.Template = &Service{}
 type Service struct {
 	machinery.TemplateMixin
 	machinery.ProjectNameMixin
+	ChartDir string
 }
 
 // SetTemplateDefaults sets the default template configuration
 func (f *Service) SetTemplateDefaults() error {
 	if f.Path == "" {
-		f.Path = filepath.Join("dist", "chart", "templates", "metrics", "metrics-service.yaml")
+		f.Path = filepath.Join(f.ChartDir, "chart", "templates", "metrics", "service.yaml")
 	}
 
 	f.TemplateBody = metricsServiceTemplate

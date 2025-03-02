@@ -28,12 +28,13 @@ var _ machinery.Template = &HelmHelpers{}
 type HelmHelpers struct {
 	machinery.TemplateMixin
 	machinery.ProjectNameMixin
+  ChartDir string
 }
 
 // SetTemplateDefaults sets the default template configuration
 func (f *HelmHelpers) SetTemplateDefaults() error {
 	if f.Path == "" {
-		f.Path = filepath.Join("dist", "chart", "templates", "_helpers.tpl")
+		f.Path = filepath.Join(f.ChartDir, "chart", "templates", "_helpers.tpl")
 	}
 
 	f.TemplateBody = helmHelpersTemplate

@@ -30,12 +30,14 @@ type Template struct {
 
 	MutatingWebhooks   []DataWebhook
 	ValidatingWebhooks []DataWebhook
+
+  ChartDir string
 }
 
 // SetTemplateDefaults sets default configuration for the webhook template
 func (f *Template) SetTemplateDefaults() error {
 	if f.Path == "" {
-		f.Path = filepath.Join("dist", "chart", "templates", "webhook", "webhooks.yaml")
+		f.Path = filepath.Join(f.ChartDir, "chart", "templates", "webhooks", "webhooks.yaml")
 	}
 
 	f.TemplateBody = webhookTemplate

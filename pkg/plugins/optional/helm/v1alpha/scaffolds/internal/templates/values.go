@@ -34,12 +34,14 @@ type HelmValues struct {
 	Force bool
 	// HasWebhooks is true when webhooks were found in the config
 	HasWebhooks bool
+
+	ChartDir string
 }
 
 // SetTemplateDefaults implements machinery.Template
 func (f *HelmValues) SetTemplateDefaults() error {
 	if f.Path == "" {
-		f.Path = filepath.Join("dist", "chart", "values.yaml")
+		f.Path = filepath.Join(f.ChartDir, "chart", "values.yaml")
 	}
 	f.TemplateBody = helmValuesTemplate
 

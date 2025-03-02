@@ -30,14 +30,16 @@ type Service struct {
 
 	// Force if true allows overwriting the scaffolded file
 	Force bool
+
+	ChartDir string
 }
 
 // SetTemplateDefaults sets the default template configuration
 func (f *Service) SetTemplateDefaults() error {
 	if f.Path == "" {
-		f.Path = filepath.Join("dist", "chart", "templates", "webhook", "service.yaml")
+		f.Path = filepath.Join(f.ChartDir, "chart", "templates", "webhook", "service.yaml")
 	}
-
+	
 	f.TemplateBody = webhookServiceTemplate
 
 	f.IfExistsAction = machinery.OverwriteFile

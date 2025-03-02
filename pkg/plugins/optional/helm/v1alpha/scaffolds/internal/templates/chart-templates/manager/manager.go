@@ -35,12 +35,14 @@ type Deployment struct {
 	Force bool
 	// HasWebhooks is true when webhooks were found in the config
 	HasWebhooks bool
+
+	ChartDir string
 }
 
 // SetTemplateDefaults sets the default template configuration
 func (f *Deployment) SetTemplateDefaults() error {
 	if f.Path == "" {
-		f.Path = filepath.Join("dist", "chart", "templates", "manager", "manager.yaml")
+		f.Path = filepath.Join(f.ChartDir, "chart", "templates", "manager", "manager.yaml")
 	}
 
 	f.TemplateBody = managerDeploymentTemplate

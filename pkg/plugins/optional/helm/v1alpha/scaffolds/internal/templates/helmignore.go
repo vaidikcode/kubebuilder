@@ -27,12 +27,13 @@ var _ machinery.Template = &HelmIgnore{}
 // HelmIgnore scaffolds a file that defines the .helmignore for Helm packaging
 type HelmIgnore struct {
 	machinery.TemplateMixin
+	ChartDir string
 }
 
 // SetTemplateDefaults implements machinery.Template
 func (f *HelmIgnore) SetTemplateDefaults() error {
 	if f.Path == "" {
-		f.Path = filepath.Join("dist", "chart", ".helmignore")
+		f.Path = filepath.Join(f.ChartDir, "chart", ".helmignore")
 	}
 
 	f.TemplateBody = helmIgnoreTemplate
@@ -66,5 +67,5 @@ const helmIgnoreTemplate = `# Patterns to ignore when building Helm packages.
 .vscode/
 
 # Helm chart artifacts
-dist/chart/*.tgz
+*/chart/*.tgz
 `

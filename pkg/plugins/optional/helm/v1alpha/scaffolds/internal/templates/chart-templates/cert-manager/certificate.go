@@ -27,12 +27,13 @@ var _ machinery.Template = &Certificate{}
 type Certificate struct {
 	machinery.TemplateMixin
 	machinery.ProjectNameMixin
+  ChartDir string
 }
 
 // SetTemplateDefaults sets the default template configuration
 func (f *Certificate) SetTemplateDefaults() error {
 	if f.Path == "" {
-		f.Path = filepath.Join("dist", "chart", "templates", "certmanager", "certificate.yaml")
+		f.Path = filepath.Join(f.ChartDir, "chart", "templates", "certmanager", "certificate.yaml")
 	}
 
 	f.TemplateBody = certificateTemplate

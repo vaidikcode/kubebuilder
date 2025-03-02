@@ -43,7 +43,9 @@ var (
 	_ plugin.Edit = Plugin{}
 )
 
-type pluginConfig struct{}
+type pluginConfig struct{
+	ChartDir string `json:"chartDir,omitempty"`
+}
 
 // Name returns the name of the plugin
 func (Plugin) Name() string { return pluginName }

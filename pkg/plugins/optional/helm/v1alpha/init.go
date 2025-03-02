@@ -19,6 +19,7 @@ package v1alpha
 import (
 	"fmt"
 
+	"github.com/spf13/pflag"
 	"sigs.k8s.io/kubebuilder/v4/pkg/config"
 	"sigs.k8s.io/kubebuilder/v4/pkg/machinery"
 	"sigs.k8s.io/kubebuilder/v4/pkg/plugin"
@@ -28,14 +29,18 @@ import (
 var _ plugin.InitSubcommand = &initSubcommand{}
 
 type initSubcommand struct {
-	config config.Config
+	config   config.Config
+	chartDir string
 }
 
 func (p *initSubcommand) UpdateMetadata(cliMeta plugin.CLIMetadata, subcmdMeta *plugin.SubcommandMetadata) {
-	subcmdMeta.Description = `Initialize a helm chart to distribute the project under dist/
+	subcmdMeta.Description = `Initialize a helm chart to distribute the project
 `
-	subcmdMeta.Examples = fmt.Sprintf(`# Initialize a helm chart to distribute the project under dist/
+	subcmdMeta.Examples = fmt.Sprintf(`# Initialize a helm chart in the default location (dist/)
   %[1]s init --plugins=%[2]s
+
+# Initialize a helm chart in a custom location
+  %[1]s init --plugins=%[2]s --chart-dir=charts
 
 **IMPORTANT** You must use %[1]s edit --plugins=%[2]s to update the chart when changes are made.
 `, cliMeta.CommandName, plugin.KeyFor(Plugin{}))
@@ -46,14 +51,25 @@ func (p *initSubcommand) InjectConfig(c config.Config) error {
 	return nil
 }
 
+// Add the BindFlags method to accept the chart-dir flag
+func (p *initSubcommand) BindFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&p.chartDir, "chart-dir", "dist", "Directory where the Helm chart will be scaffolded")
+}
+
+// Update the Scaffold method to use the chart directory
 func (p *initSubcommand) Scaffold(fs machinery.Filesystem) error {
-	scaffolder := scaffolds.NewInitHelmScaffolder(p.config, false)
+	// Use default if not specified
+	if p.chartDir == "" {
+		p.chartDir = "dist"
+	}
+
+	scaffolder := scaffolds.NewInitHelmScaffolder(p.config, false, p.chartDir)
 	scaffolder.InjectFS(fs)
 	err := scaffolder.Scaffold()
 	if err != nil {
 		return err
 	}
 
-	// Track the resources following a declarative approach
-	return insertPluginMetaToConfig(p.config, pluginConfig{})
+	// Track the chart directory in the PROJECT file
+	return insertPluginMetaToConfig(p.config, pluginConfig{ChartDir: p.chartDir})
 }

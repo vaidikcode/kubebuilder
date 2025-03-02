@@ -27,12 +27,13 @@ var _ machinery.Template = &Monitor{}
 type Monitor struct {
 	machinery.TemplateMixin
 	machinery.ProjectNameMixin
+	ChartDir string
 }
 
 // SetTemplateDefaults sets the default template configuration
 func (f *Monitor) SetTemplateDefaults() error {
 	if f.Path == "" {
-		f.Path = filepath.Join("dist", "chart", "templates", "prometheus", "monitor.yaml")
+		f.Path = filepath.Join(f.ChartDir, "chart", "templates", "prometheus", "monitor.yaml")
 	}
 
 	f.TemplateBody = monitorTemplate

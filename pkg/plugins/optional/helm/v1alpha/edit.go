@@ -29,8 +29,9 @@ import (
 var _ plugin.EditSubcommand = &editSubcommand{}
 
 type editSubcommand struct {
-	config config.Config
-	force  bool
+	config   config.Config
+	force    bool
+	chartDir string
 }
 
 //nolint:lll
@@ -64,23 +65,35 @@ manifests in the chart align with the latest changes.
 `, cliMeta.CommandName, plugin.KeyFor(Plugin{}))
 }
 
+// Update the BindFlags method to add the chart-dir flag
 func (p *editSubcommand) BindFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&p.force, "force", false, "if true, regenerates all the files")
+	fs.StringVar(&p.chartDir, "chart-dir", "dist", "Directory where the Helm chart will be scaffolded")
 }
 
-func (p *editSubcommand) InjectConfig(c config.Config) error {
-	p.config = c
-	return nil
-}
-
+// Update the Scaffold method to retrieve the stored chart directory
 func (p *editSubcommand) Scaffold(fs machinery.Filesystem) error {
-	scaffolder := scaffolds.NewInitHelmScaffolder(p.config, p.force)
+	// Try to get chartDir from PROJECT file
+	cfg := pluginConfig{}
+	if err := p.config.DecodePluginConfig(pluginKey, &cfg); err == nil {
+		// If a directory was stored and none specified on command line, use the stored one
+		if cfg.ChartDir != "" && p.chartDir == "dist" {
+			p.chartDir = cfg.ChartDir
+		}
+	}
+
+	// Use default if still not specified
+	if p.chartDir == "" {
+		p.chartDir = "dist"
+	}
+
+	scaffolder := scaffolds.NewInitHelmScaffolder(p.config, p.force, p.chartDir)
 	scaffolder.InjectFS(fs)
 	err := scaffolder.Scaffold()
 	if err != nil {
 		return err
 	}
 
-	// Track the resources following a declarative approach
-	return insertPluginMetaToConfig(p.config, pluginConfig{})
+	// Track or update the chart directory in the PROJECT file
+	return insertPluginMetaToConfig(p.config, pluginConfig{ChartDir: p.chartDir})
 }
